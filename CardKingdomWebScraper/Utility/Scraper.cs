@@ -6,6 +6,7 @@ using System.Threading;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium;
 using System.Collections.ObjectModel;
+using OpenQA.Selenium.Support.UI;
 
 namespace CardKingdomWebScraper.Utility
 {
@@ -62,9 +63,21 @@ namespace CardKingdomWebScraper.Utility
 
 			using (var driver = new ChromeDriver())
 			{
+				WebDriverWait wait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
+
+				// Visit CardKingdom website
+				driver.Navigate().GoToUrl("https://www.cardkingdom.com");
+
+				// Add cookie to modify max results to 1000
+				driver.Manage().Cookies.AddCookie(new OpenQA.Selenium.Cookie("limit", "1000"));
+
 				while (hasNextPage)
 				{
 					driver.Navigate().GoToUrl(url);
+
+					// Wait for the card elements to be loaded
+					wait.Until(d => d.FindElement(By.XPath("//div[@class='productItemWrapper productCardWrapper']")));
+
 					var cardElements = driver.FindElements(By.XPath("//div[@class='productItemWrapper productCardWrapper']"));
 
 					if (cardElements == null)
@@ -87,13 +100,36 @@ namespace CardKingdomWebScraper.Utility
 						};
 
 						cards.Add(card);
-
-						var pagination = driver.FindElement(By.XPath("//ul[@class='pagination justify-content-center']"));
-						var tabs = driver.FindElements(By.XPath("//div[@class='categoryTabs']//ul[@class='nav nav-tabs subtab singles']/li[@role='presentation']"));
-						var nextPageButton = pagination != null ? pagination.FindElement(By.XPath("./li[@class='page-item']/a[@aria-label='Next']")) : null;
 					}
+
+					var pagination = driver.FindElement(By.XPath("//ul[@class='pagination justify-content-center']"));
+					var tabs = driver.FindElements(By.XPath("//div[@class='categoryTabs']//ul[@class='nav nav-tabs subtab singles']/li[@role='presentation']"));
+					var nextPageButton = pagination != null ? pagination.FindElement(By.XPath("./li[@class='page-item']/a[@aria-label='Next']")) : null;
+
+					// If there are no more pages left, check the foils.
+					// If there are no more pages in the foil tab, exit function.
+					if (pagination == null || nextPageButton == null)
+					{
+						hasNextPage = false;
+						(bool hasFoilTab, url) = HasFoilTab(tabs);
+						if (hasFoilTab && !inFoilsTab)
+						{
+							inFoilsTab = true;
+							hasNextPage = true;
+						}
+
+						if (!hasNextPage) break;
+					}
+
+					// Asynchronous delay before going to next page
+					await Task.Delay(5000);
+
+					if (nextPageButton != null)
+						url = WebUtility.HtmlDecode(nextPageButton.GetAttribute("href"));
 				}
 			}
+
+			return cards;
 		}
 
 		private static string ScrapeCardName(IWebElement card)
@@ -103,14 +139,22 @@ namespace CardKingdomWebScraper.Utility
 		}
 		private static string ScrapeCardImageURL(IWebElement card)
 		{
-			var cardImage = card.FindElement(By.XPath(".//mtg-card-image"));
+			var cardImage = card.FindElement(By.XPath(".//img[@class='card-image']"));
 			return "www.cardkingdom.com" + cardImage.GetAttribute("src");
 		}
 
 		private static bool ScrapeIsFoil(IWebElement card)
 		{
-			var foilElement = card.FindElement(By.XPath(".//div[@class='foil']"));
-			return foilElement != null;
+			try
+			{
+				var foilElement = card.FindElement(By.XPath(".//div[@class='foil']"));
+				return foilElement != null;
+			} 
+			catch (OpenQA.Selenium.NoSuchElementException)
+			{
+				return false;
+			} 
+			
 		}
 
 		private static List<CardCondition> ScrapeCardConditions(IWebElement card)
