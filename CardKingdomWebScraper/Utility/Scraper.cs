@@ -5,6 +5,7 @@ using System.Net;
 using System.Threading;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium;
+using System.Collections.ObjectModel;
 
 namespace CardKingdomWebScraper.Utility
 {
@@ -95,20 +96,20 @@ namespace CardKingdomWebScraper.Utility
 			}
 		}
 
-		private static string ScrapeCardName(HtmlNode card)
+		private static string ScrapeCardName(IWebElement card)
 		{
-			HtmlNode cardNameElement = card.SelectSingleNode(".//span[@class='productDetailTitle']");
-			return WebUtility.HtmlDecode(cardNameElement.InnerText);
+			var cardNameElement = card.FindElement(By.XPath(".//span[@class='productDetailTitle']"));
+			return WebUtility.HtmlDecode(cardNameElement.Text);
 		}
-		private static string ScrapeCardImageURL(HtmlNode card)
+		private static string ScrapeCardImageURL(IWebElement card)
 		{
-			HtmlNode cardImage = card.SelectSingleNode(".//mtg-card-image");
-			return "www.cardkingdom.com" + cardImage.GetAttributeValue("src", "");
+			var cardImage = card.FindElement(By.XPath(".//mtg-card-image"));
+			return "www.cardkingdom.com" + cardImage.GetAttribute("src");
 		}
 
-		private static bool ScrapeIsFoil(HtmlNode card)
+		private static bool ScrapeIsFoil(IWebElement card)
 		{
-			HtmlNode foilElement = card.SelectSingleNode(".//div[@class='foil']");
+			var foilElement = card.FindElement(By.XPath(".//div[@class='foil']"));
 			return foilElement != null;
 		}
 
@@ -173,24 +174,24 @@ namespace CardKingdomWebScraper.Utility
 		/*
 		 Return URL of next page if there is a next page, otherwise return null
 		 */
-		public static string? GetNextPage(HtmlDocument htmlDocument)
+		public static string? GetNextPage(IWebElement htmlDocument)
 		{
-			HtmlNode pagination = htmlDocument.DocumentNode.SelectSingleNode("//ul[@class=\"pagination justify-content-center\"]");
-			HtmlNode nextPageButton = pagination.SelectSingleNode("./li[@class=\"page-item\"]/a[@aria-label=\"Next\"]");
+			var pagination = htmlDocument.FindElement(By.XPath("//ul[@class=\"pagination justify-content-center\"]"));
+			var nextPageButton = pagination.FindElement(By.XPath("./li[@class=\"page-item\"]/a[@aria-label=\"Next\"]"));
 			if (nextPageButton == null)
 				return null;
 
-			string nextPageURL = nextPageButton.GetAttributeValue("href", "");
+			string nextPageURL = nextPageButton.GetAttribute("href");
 			return nextPageURL;
 		}
 
-		public static (bool hasFoilTab, string url) HasFoilTab(HtmlNodeCollection tabs)
+		public static (bool hasFoilTab, string url) HasFoilTab(ReadOnlyCollection<IWebElement> tabs)
 		{
 			string url = "";
-			foreach (HtmlNode tab in tabs)
+			foreach (IWebElement tab in tabs)
 			{
-				if (tab.SelectSingleNode("a").InnerText.Contains("Foils"))
-					return (true, url = "https://www.cardkingdom.com" + tab.SelectSingleNode("a").GetAttributeValue("href", ""));
+				if (tab.FindElement(By.XPath("a")).Text.Contains("Foils"))
+					return (true, url = "https://www.cardkingdom.com" + tab.FindElement(By.XPath("a")).GetAttribute("href"));
 			}
 			return (false, url);
 		}
