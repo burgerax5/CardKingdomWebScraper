@@ -5,7 +5,7 @@
 namespace CardKingdomWebScraper.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class ResetDatabase : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -31,7 +31,8 @@ namespace CardKingdomWebScraper.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Username = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Password = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    Password = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Salt = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -47,6 +48,7 @@ namespace CardKingdomWebScraper.Migrations
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ImageURL = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     EditionId = table.Column<int>(type: "int", nullable: false),
+                    Rarity = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     IsFoil = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>

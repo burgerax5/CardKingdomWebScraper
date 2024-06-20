@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CardKingdomWebScraper.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20240607054533_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20240617084344_ResetDatabase")]
+    partial class ResetDatabase
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -43,6 +43,10 @@ namespace CardKingdomWebScraper.Migrations
                         .HasColumnType("bit");
 
                     b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Rarity")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -140,6 +144,10 @@ namespace CardKingdomWebScraper.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Password")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Salt")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 

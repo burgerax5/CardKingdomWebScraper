@@ -27,10 +27,10 @@ namespace CardKingdomWebScraper.Utility
 
         public async Task ScrapeAllCards()
         {
+            await ScrapeEditionNames();
             List<Edition> editions = await _context.Editions.ToListAsync();
-            List<Edition> smallEditions = editions.Slice(311, 1);
-            Console.WriteLine($"Editions: {editions.Count}\nSmall Editions: {smallEditions.Count}");
-            foreach (Edition edition in smallEditions)
+            Console.WriteLine($"Editions: {editions.Count}");
+            foreach (Edition edition in editions)
             {
                 Console.WriteLine($"Scraping: {edition.Name}");
 				await ScrapeEditionCards(edition);
