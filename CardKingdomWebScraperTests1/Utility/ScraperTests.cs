@@ -1,4 +1,6 @@
 ﻿using CardKingdomWebScraper.Models;
+using CardKingdomWebScraper.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace CardKingdomWebScraper.Utility.Tests
 {
@@ -31,9 +33,51 @@ namespace CardKingdomWebScraper.Utility.Tests
 			List<Card> cardsInPortalII = await Scraper.ScrapeCardsFromEdition(edition);
 			Card firstCard = cardsInPortalII.First();
 
-			// There should be 165 cards (no foils)
+			// There should be 165 cards (no foils) with the first one being "Goblin War Strike"
 			Assert.AreEqual(165, cardsInPortalII.Count);
 			Assert.AreEqual("Goblin War Strike", firstCard.Name);
+		}
+
+		[TestMethod()]
+		public async Task ScrapeInvalidEditionCardsTest()
+		{
+			Edition edition = new Edition
+			{
+				Name = "No Edition",
+				Code = "no-edition"
+			};
+
+			List<Card> cards = await Scraper.ScrapeCardsFromEdition(edition);
+			Assert.AreEqual(0, cards.Count);
+		}
+	}
+
+	[TestClass]
+	public class ScrapingServiceTests
+	{
+		private DataContext _context;
+		private ScrapingService _scrapingService;
+
+		[TestInitialize]
+		public void Setup()
+		{
+			var options = new DbContextOptionsBuilder<DataContext>()
+				.UseInMemoryDatabase(databaseName: "testdb")
+				.Options;
+
+			_context = new DataContext(options);
+			_scrapingService = new ScrapingService(_context);
+		}
+
+		[TestMethod()]
+		public async Task EditionNamesTest()
+		{
+			await _scrapingService.ScrapeEditionNames();
+			var editions = _context.Editions.ToList();
+
+			// As of 21/06/2024 there are 339 editions
+			Assert.IsTrue(editions.Count >= 339);
+			Assert.AreEqual("3rd Edition", editions.First().Name);
 		}
 	}
 }
