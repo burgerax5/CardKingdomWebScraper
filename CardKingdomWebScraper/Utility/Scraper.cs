@@ -51,6 +51,7 @@ namespace CardKingdomWebScraper.Utility
 			string url = "https://www.cardkingdom.com/mtg/" + edition.Code;
 			var httpClientHandler = new HttpClientHandler { CookieContainer = new CookieContainer() };
 			httpClientHandler.CookieContainer.Add(new Cookie("limit", "1000", "/", "www.cardkingdom.com"));
+			httpClientHandler.CookieContainer.Add(new Cookie("sortBy", "name_asc", "/", "www.cardkingdom.com"));
 
 			using var httpClient = new HttpClient(httpClientHandler);
 			var htmlDocument = new HtmlDocument();
