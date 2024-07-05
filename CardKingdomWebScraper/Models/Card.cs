@@ -17,8 +17,8 @@ namespace CardKingdomWebScraper.Models
 	public class Card
 	{
 		public int Id { get; set; }
-		public string Name { get; set; }
-		public string ImageURL { get; set; }
+		public required string Name { get; set; }
+		public required string ImageURL { get; set; }
 		public int EditionId { get; set; }
 		public required Edition Edition { get; set; }
 		public Rarity Rarity { get; set; }
