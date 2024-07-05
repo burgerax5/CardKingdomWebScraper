@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CardKingdomWebScraper.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20240617084344_ResetDatabase")]
-    partial class ResetDatabase
+    [Migration("20240705064042_RequiredFieldsAndOrdinalRarity")]
+    partial class RequiredFieldsAndOrdinalRarity
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -46,9 +46,8 @@ namespace CardKingdomWebScraper.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Rarity")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("Rarity")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 

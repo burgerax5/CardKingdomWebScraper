@@ -5,7 +5,7 @@
 namespace CardKingdomWebScraper.Migrations
 {
     /// <inheritdoc />
-    public partial class ResetDatabase : Migration
+    public partial class RequiredFieldsAndOrdinalRarity : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -48,7 +48,7 @@ namespace CardKingdomWebScraper.Migrations
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ImageURL = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     EditionId = table.Column<int>(type: "int", nullable: false),
-                    Rarity = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Rarity = table.Column<int>(type: "int", nullable: false),
                     IsFoil = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
