@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 public class WebScraper
 {
-	private static System.Timers.Timer _timer;
+	private static System.Timers.Timer? _timer;
 
 	public static async Task Main()
 	{

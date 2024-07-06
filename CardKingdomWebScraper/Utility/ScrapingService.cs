@@ -68,7 +68,7 @@ namespace CardKingdomWebScraper.Utility
 				{
 					var existingCard = await _context.Cards
                         .Include(c => c.Conditions)
-                        .FirstOrDefaultAsync(c => c.Name == card.Name && c.EditionId == card.EditionId);
+                        .FirstOrDefaultAsync(c => c.Name == card.Name && c.EditionId == card.EditionId && c.IsFoil == card.IsFoil);
 
 					if (existingCard == null)
 						await _context.Cards.AddAsync(card);
