@@ -1,8 +1,11 @@
 ﻿using HtmlAgilityPack;
 using System;
-using CardKingdomWebScraper.Models;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net;
-using System.Threading;
+using System.Net.Http;
+using System.Threading.Tasks;
+using CardKingdomWebScraper.Models;
 
 namespace CardKingdomWebScraper.Utility
 {
@@ -12,7 +15,6 @@ namespace CardKingdomWebScraper.Utility
 		{
 			string url = "https://www.cardkingdom.com/catalog/magic_the_gathering/by_az";
 
-			// Send GET request to CardKingdom
 			using var httpClient = new HttpClient();
 			var html = await httpClient.GetStringAsync(url);
 			var htmlDocument = new HtmlDocument();
@@ -20,9 +22,7 @@ namespace CardKingdomWebScraper.Utility
 
 			List<Edition> editions = new List<Edition>();
 
-			// Retrieve edition names
 			HtmlNode editionContainer = htmlDocument.DocumentNode.SelectSingleNode("//div[@class='row anchorList']");
-
 			if (editionContainer == null) return editions;
 
 			HtmlNodeCollection editionAnchors = editionContainer.SelectNodes(".//a");
@@ -66,14 +66,16 @@ namespace CardKingdomWebScraper.Utility
 				htmlDocument.LoadHtml(html);
 
 				HtmlNodeCollection cardElements = htmlDocument.DocumentNode.SelectNodes("//div[@class='productItemWrapper productCardWrapper']");
-				if (cardElements == null) 
-				{ 
-					Console.WriteLine("Could not find any cards on this page."); 
-					break; 
+				if (cardElements == null)
+				{
+					Console.WriteLine("Could not find any cards on this page.");
+					break;
 				}
 
 				foreach (HtmlNode card in cardElements)
 				{
+					(var NMPrice, var conditions) = ScrapeCardConditions(card);
+
 					Card _card = new Card
 					{
 						Name = ScrapeCardName(card),
@@ -81,8 +83,9 @@ namespace CardKingdomWebScraper.Utility
 						IsFoil = ScrapeIsFoil(card),
 						Edition = edition,
 						EditionId = edition.Id,
-						Conditions = ScrapeCardConditions(card),
+						Conditions = conditions,
 						Rarity = ScrapeCardRarity(card),
+						NMPrice = NMPrice
 					};
 
 					cards.Add(_card);
@@ -90,26 +93,22 @@ namespace CardKingdomWebScraper.Utility
 
 				HtmlNode pagination = htmlDocument.DocumentNode.SelectSingleNode("//ul[@class='pagination justify-content-center']");
 				HtmlNodeCollection tabs = htmlDocument.DocumentNode.SelectNodes("//div[@class='categoryTabs']//ul[@class='nav nav-tabs subtab singles']/li[@role='presentation']");
-				HtmlNode? nextPageButton = pagination != null ? pagination.SelectSingleNode("./li[@class='page-item']/a[@aria-label='Next']") : null;
+				HtmlNode? nextPageButton = pagination?.SelectSingleNode("./li[@class='page-item']/a[@aria-label='Next']");
 
-				/*
-                 If there are no more pages left, check the foils.
-                 If there are no more pages in the foil tab, exit function.
-                 */
 				if (pagination == null || nextPageButton == null)
 				{
 					hasNextPage = false;
-					(bool hasFoilTab, url) = HasFoilTab(tabs);
+					(bool hasFoilTab, string nextUrl) = HasFoilTab(tabs);
 					if (hasFoilTab && !inFoilsTab)
 					{
 						inFoilsTab = true;
 						hasNextPage = true;
+						url = nextUrl;
 					}
 
 					if (!hasNextPage) break;
 				}
 
-				// Asynchronous delay before going to next page
 				await Task.Delay(5000);
 
 				if (nextPageButton != null) url = WebUtility.HtmlDecode(nextPageButton.GetAttributeValue("href", ""));
@@ -123,6 +122,7 @@ namespace CardKingdomWebScraper.Utility
 			HtmlNode cardNameElement = card.SelectSingleNode(".//span[@class='productDetailTitle']");
 			return WebUtility.HtmlDecode(cardNameElement.InnerText);
 		}
+
 		private static string ScrapeCardImageURL(HtmlNode card)
 		{
 			HtmlNode cardImage = card.SelectSingleNode(".//mtg-card-image");
@@ -135,7 +135,7 @@ namespace CardKingdomWebScraper.Utility
 			return foilElement != null;
 		}
 
-		private static List<CardCondition> ScrapeCardConditions(HtmlNode card)
+		private static (double NMPrice, List<CardCondition>) ScrapeCardConditions(HtmlNode card)
 		{
 			List<CardCondition> cardConditions = new List<CardCondition>();
 
@@ -146,25 +146,19 @@ namespace CardKingdomWebScraper.Utility
 				cardConditions.Add(cardCondition);
 			}
 
-			return cardConditions;
+			return (cardConditions[0].Price, cardConditions);
 		}
 
 		private static CardCondition ScrapeCardConditionDetails(HtmlNode cardFormInput)
 		{
-			// Condition
-			string cardConditionName = cardFormInput.SelectSingleNode("./input[@name='style[0]']")
-													.GetAttributeValue("value", "");
+			string cardConditionName = cardFormInput.SelectSingleNode("./input[@name='style[0]']").GetAttributeValue("value", "");
 			Enum.TryParse(cardConditionName, out Condition condition);
 
-			// Price
 			HtmlNode cardConditionPriceElement = cardFormInput.SelectSingleNode("./input[@name='price']");
-			double cardConditionPrice = Convert.ToDouble(cardConditionPriceElement
-											   .GetAttributeValue("value", ""));
+			double cardConditionPrice = Convert.ToDouble(cardConditionPriceElement.GetAttributeValue("value", ""));
 
-			// Quantity
 			HtmlNode cardConditionQuantityElement = cardFormInput.SelectSingleNode("./input[@name='maxQty']");
-			int cardConditionQuantity = Convert.ToInt32(cardConditionQuantityElement
-											   .GetAttributeValue("value", ""));
+			int cardConditionQuantity = Convert.ToInt32(cardConditionQuantityElement.GetAttributeValue("value", ""));
 			cardConditionQuantity = cardConditionQuantity < 0 ? 0 : cardConditionQuantity;
 
 			CardCondition cardCondition = new CardCondition
@@ -183,38 +177,30 @@ namespace CardKingdomWebScraper.Utility
 			var editionNameAndRarity = productDetailSet.SelectSingleNode("a").InnerText;
 			var rarity = editionNameAndRarity.Trim().Replace("\n", "")[^3..];
 
-			switch (rarity)
+			return rarity switch
 			{
-				case "(U)": return Rarity.Uncommon;
-				case "(R)": return Rarity.Rare;
-				case "(M)": return Rarity.Mythic_Rare;
-				default: return Rarity.Common;
-			}
+				"(U)" => Rarity.Uncommon,
+				"(R)" => Rarity.Rare,
+				"(M)" => Rarity.Mythic_Rare,
+				_ => Rarity.Common,
+			};
 		}
 
-		/*
-		 Return URL of next page if there is a next page, otherwise return null
-		 */
 		public static string? GetNextPage(HtmlDocument htmlDocument)
 		{
-			HtmlNode pagination = htmlDocument.DocumentNode.SelectSingleNode("//ul[@class=\"pagination justify-content-center\"]");
-			HtmlNode nextPageButton = pagination.SelectSingleNode("./li[@class=\"page-item\"]/a[@aria-label=\"Next\"]");
-			if (nextPageButton == null)
-				return null;
-
-			string nextPageURL = nextPageButton.GetAttributeValue("href", "");
-			return nextPageURL;
+			HtmlNode pagination = htmlDocument.DocumentNode.SelectSingleNode("//ul[@class='pagination justify-content-center']");
+			HtmlNode? nextPageButton = pagination?.SelectSingleNode("./li[@class='page-item']/a[@aria-label='Next']");
+			return nextPageButton?.GetAttributeValue("href", null);
 		}
 
 		public static (bool hasFoilTab, string url) HasFoilTab(HtmlNodeCollection tabs)
 		{
-			string url = "";
 			foreach (HtmlNode tab in tabs)
 			{
 				if (tab.SelectSingleNode("a").InnerText.Contains("Foils"))
-					return (true, url = "https://www.cardkingdom.com" + tab.SelectSingleNode("a").GetAttributeValue("href", ""));
+					return (true, "https://www.cardkingdom.com" + tab.SelectSingleNode("a").GetAttributeValue("href", ""));
 			}
-			return (false, url);
+			return (false, "");
 		}
 	}
 }
