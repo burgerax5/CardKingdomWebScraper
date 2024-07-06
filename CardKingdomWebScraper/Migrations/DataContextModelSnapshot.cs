@@ -39,6 +39,9 @@ namespace CardKingdomWebScraper.Migrations
                     b.Property<bool>("IsFoil")
                         .HasColumnType("bit");
 
+                    b.Property<double>("NMPrice")
+                        .HasColumnType("float");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -49,6 +52,12 @@ namespace CardKingdomWebScraper.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("EditionId");
+
+                    b.HasIndex("NMPrice")
+                        .HasDatabaseName("IX_Cards_NMPrice");
+
+                    b.HasIndex("Rarity")
+                        .HasDatabaseName("IX_Cards_Rarity");
 
                     b.ToTable("Cards");
                 });

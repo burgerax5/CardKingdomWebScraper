@@ -5,7 +5,7 @@
 namespace CardKingdomWebScraper.Migrations
 {
     /// <inheritdoc />
-    public partial class RequiredFieldsAndOrdinalRarity : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -49,7 +49,8 @@ namespace CardKingdomWebScraper.Migrations
                     ImageURL = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     EditionId = table.Column<int>(type: "int", nullable: false),
                     Rarity = table.Column<int>(type: "int", nullable: false),
-                    IsFoil = table.Column<bool>(type: "bit", nullable: false)
+                    IsFoil = table.Column<bool>(type: "bit", nullable: false),
+                    NMPrice = table.Column<double>(type: "float", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -120,6 +121,16 @@ namespace CardKingdomWebScraper.Migrations
                 name: "IX_Cards_EditionId",
                 table: "Cards",
                 column: "EditionId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Cards_NMPrice",
+                table: "Cards",
+                column: "NMPrice");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Cards_Rarity",
+                table: "Cards",
+                column: "Rarity");
 
             migrationBuilder.CreateIndex(
                 name: "IX_CardsOwned_CardConditionId",

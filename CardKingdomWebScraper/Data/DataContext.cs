@@ -28,6 +28,14 @@ namespace CardKingdomWebScraper.Data
 				entity.HasIndex(e => e.Name).IsUnique();
 			});
 
+			modelBuilder.Entity<Card>()
+				.HasIndex(c => c.Rarity)
+				.HasDatabaseName("IX_Cards_Rarity");
+
+			modelBuilder.Entity<Card>()
+				.HasIndex(c => c.NMPrice)
+				.HasDatabaseName("IX_Cards_NMPrice");
+
 			modelBuilder.Entity<CardCondition>()
 				.Property(c => c.Condition)
 				.HasConversion<string>();
