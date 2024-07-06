@@ -8,7 +8,7 @@ public class WebScraper
 {
 	private static System.Timers.Timer _timer;
 
-	public static void Main()
+	public static async Task Main()
 	{
 		var serviceProvider = new ServiceCollection()
 			.AddDbContext<DataContext>(options => 
@@ -16,20 +16,29 @@ public class WebScraper
 			.AddTransient<ScrapingService>()
 			.BuildServiceProvider();
 
-		// Perform an initial scraping run
-		using (var scope = serviceProvider.CreateScope())
+		try
 		{
-			var scrapingService = scope.ServiceProvider.GetRequiredService<ScrapingService>();
-			ScrapeData(scrapingService).Wait();
+			// Perform an initial scraping run
+			using (var scope = serviceProvider.CreateScope())
+			{
+				var scrapingService = scope.ServiceProvider.GetRequiredService<ScrapingService>();
+				await ScrapeData(scrapingService);
+			}
+
+			// Set up a timer to run the scraping service periodically
+			_timer = new System.Timers.Timer(1000 * 60 * 60 * 24);
+			_timer.Elapsed += async (sender, e) => await OnTimedEvent(serviceProvider);
+			_timer.AutoReset = true;
+			_timer.Enabled = true;
+
+			Console.WriteLine("Press the Enter key to exit the program at any time... ");
+			Console.ReadLine();
 		}
-
-		_timer = new System.Timers.Timer(1000 * 60 * 60 * 24);
-		_timer.Elapsed += async (sender, e) => await OnTimedEvent(serviceProvider);
-		_timer.AutoReset = true;
-		_timer.Enabled = true;
-
-		Console.WriteLine("Press the Enter key to exit the program at any time... ");
-		Console.ReadLine();
+		catch (Exception ex)
+		{
+			Console.WriteLine($"An error occurred: {ex.Message}");
+			Console.WriteLine(ex.StackTrace);
+		}
 	}
 
 	private static async Task OnTimedEvent(IServiceProvider serviceProvider)
