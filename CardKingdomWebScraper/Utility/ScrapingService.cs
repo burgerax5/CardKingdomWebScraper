@@ -39,25 +39,36 @@ namespace CardKingdomWebScraper.Utility
 
         public async Task AddEditions(List<Edition> editions)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
-            try
+            if (_context.Database.ProviderName != "Microsoft.EntityFrameworkCore.InMemory")
             {
-				foreach (Edition edition in editions)
+				using var transaction = await _context.Database.BeginTransactionAsync();
+				try
 				{
-					bool editionExists = await _context.Editions.AnyAsync(e => e.Name == edition.Name);
-					if (!editionExists)
-						await _context.Editions.AddAsync(edition);
+                    await AddEditionsInternal(editions);
+					await transaction.CommitAsync();
 				}
-
-				await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-			}
-            catch (Exception)
+				catch (Exception)
+				{
+					await transaction.RollbackAsync();
+					throw;
+				}
+			} else
             {
-                await transaction.RollbackAsync();
-                throw;
+                await AddEditionsInternal(editions);
             }
         }
+
+        private async Task AddEditionsInternal(List<Edition> editions)
+        {
+			foreach (Edition edition in editions)
+			{
+				bool editionExists = await _context.Editions.AnyAsync(e => e.Name == edition.Name);
+				if (!editionExists)
+					await _context.Editions.AddAsync(edition);
+			}
+
+			await _context.SaveChangesAsync();
+		}
 
         public async Task UpsertCards(List<Card> cards)
         {

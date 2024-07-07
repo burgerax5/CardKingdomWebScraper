@@ -1,5 +1,7 @@
-﻿using CardKingdomWebScraper.Models;
+﻿using CardKingdomWebScraper.Data;
+using CardKingdomWebScraper.Models;
 using HtmlAgilityPack;
+using Microsoft.EntityFrameworkCore;
 using Moq;
 using System;
 
@@ -232,6 +234,67 @@ namespace CardKingdomWebScraper.Utility.Tests
 			// Assert
 			Assert.IsFalse(hasFoil);
 			Assert.AreEqual("", url);
+		}
+	}
+
+
+	[TestClass()]
+	public class ScrapingServiceTests
+	{
+		private DataContext GetInMemoryDbContext()
+		{
+			var options = new DbContextOptionsBuilder<DataContext>()
+				.UseInMemoryDatabase(Guid.NewGuid().ToString())
+				.Options;
+
+			return new DataContext(options);
+		}
+
+		[TestMethod()]
+		public async Task AddEditions_AddsNewEditionToDatabase()
+		{
+			// Arrange
+			var context = GetInMemoryDbContext();
+			var service = new ScrapingService(context);
+
+			var editions = new List<Edition>
+			{
+				new Edition { Name = "Edition 1", Code = "edition-1" },
+				new Edition { Name = "Edition 2", Code = "edition-2" }
+			};
+
+			// Act
+			await service.AddEditions(editions);
+
+			// Assert
+			var addedEditions = await context.Editions.ToListAsync();
+			Assert.AreEqual(2, addedEditions.Count);
+			Assert.IsTrue(addedEditions.Contains(editions[0]));
+			Assert.IsTrue(addedEditions.Contains(editions[1]));
+		}
+
+		[TestMethod()]
+		public async Task AddEditions_IgnoresAddingSameEditions()
+		{
+			// Arrange
+			var context = GetInMemoryDbContext();
+			var service = new ScrapingService(context);
+
+			var editions = new List<Edition>
+			{
+				new Edition { Name = "Edition 1", Code = "edition-1" },
+				new Edition { Name = "Edition 2", Code = "edition-2" },
+			};
+
+			// Act
+			await service.AddEditions(editions);
+			await service.AddEditions(editions);
+
+			// Assert
+			var addedEditions = await context.Editions.ToListAsync();
+			Assert.AreEqual(2, addedEditions.Count);
+			Assert.IsTrue(addedEditions.Contains(editions[0]));
+			Assert.IsTrue(addedEditions.Contains(editions[1]));
 		}
 	}
 }
