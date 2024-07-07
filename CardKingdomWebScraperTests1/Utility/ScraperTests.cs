@@ -156,5 +156,82 @@ namespace CardKingdomWebScraper.Utility.Tests
 			Assert.AreEqual(Condition.VG, cardConditions[2].Condition);
 			Assert.AreEqual(Condition.G, cardConditions[3].Condition);
 		}
+
+		[TestMethod()]
+		public void ScrapeCardRarity_ReturnRarityEnum()
+		{
+			var mockHtml = @"
+							<div class='productDetailTitle'>
+								<div class='productDetailSet'><a> Unfinity (C) </a></div>
+							</div>
+							<div class='productDetailTitle'>
+								<div class='productDetailSet'><a> Unfinity (U) </a></div>
+							</div>
+							<div class='productDetailTitle'>
+								<div class='productDetailSet'><a> Unfinity (R) </a></div>
+							</div>
+							<div class='productDetailTitle'>
+								<div class='productDetailSet'><a> Unfinity (M) </a></div>
+							</div>";
+
+			var htmlDocument = new HtmlDocument();
+			htmlDocument.LoadHtml(mockHtml);
+			var cardNodes = htmlDocument.DocumentNode.SelectNodes("//div[@class='productDetailTitle']");
+
+			// Act
+			var commonRarity = Scraper.ScrapeCardRarity(cardNodes[0]);
+			var uncommonRarity = Scraper.ScrapeCardRarity(cardNodes[1]);
+			var rareRarity = Scraper.ScrapeCardRarity(cardNodes[2]);
+			var mythicRareRarity = Scraper.ScrapeCardRarity(cardNodes[3]);
+
+			// Assert
+			Assert.AreEqual(Rarity.Common, commonRarity);
+			Assert.AreEqual(Rarity.Uncommon, uncommonRarity);
+			Assert.AreEqual(Rarity.Rare, rareRarity);
+			Assert.AreEqual(Rarity.Mythic_Rare, mythicRareRarity);
+		}
+
+		[TestMethod()]
+		public void HasFoilTab_ReturnsTrue()
+		{
+			// Arrange
+			var mockHtml = @"<li role='presentation'>
+								<a href='/catalog/search?filter[tab]=mtg_single'>Singles (X)</a>
+							</li>
+							<li role='presentation'>
+								<a href='/catalog/search?filter[tab]=mtg_foil'>Foils (X)</a>
+							</li>";
+
+			var htmlDocument = new HtmlDocument();
+			htmlDocument.LoadHtml(mockHtml);
+			var tabs = htmlDocument.DocumentNode.SelectNodes("//li[@role='presentation']");
+
+			// Act
+			(var hasFoil, var url) = Scraper.HasFoilTab(tabs);
+
+			// Assert
+			Assert.IsTrue(hasFoil);
+			Assert.AreEqual("https://www.cardkingdom.com/catalog/search?filter[tab]=mtg_foil", url);
+		}
+
+		[TestMethod()]
+		public void HasFoilTab_ReturnsFalse()
+		{
+			// Arrange
+			var mockHtml = @"<li role='presentation'>
+								<a href='/catalog/search?filter[tab]=mtg_single'>Singles (X)</a>
+							</li>";
+
+			var htmlDocument = new HtmlDocument();
+			htmlDocument.LoadHtml(mockHtml);
+			var tabs = htmlDocument.DocumentNode.SelectNodes("//li[@role='presentation']");
+
+			// Act
+			(var hasFoil, var url) = Scraper.HasFoilTab(tabs);
+
+			// Assert
+			Assert.IsFalse(hasFoil);
+			Assert.AreEqual("", url);
+		}
 	}
 }
