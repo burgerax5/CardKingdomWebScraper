@@ -296,5 +296,71 @@ namespace CardKingdomWebScraper.Utility.Tests
 			Assert.IsTrue(addedEditions.Contains(editions[0]));
 			Assert.IsTrue(addedEditions.Contains(editions[1]));
 		}
+
+		[TestMethod()]
+		public async Task UpsertCards_AddCardsToDatabase()
+		{
+			// Arrange
+			var context = GetInMemoryDbContext();
+			var service = new ScrapingService(context);
+
+			var edition = new Edition { Name = "Edition 1", Code = "edition-1", Id = 1 };
+			context.Editions.Add(edition);
+			await context.SaveChangesAsync();
+
+			var cards = new List<Card>
+			{
+				new Card { Name = "Card 1", ImageURL = "card1.jpg", EditionId = 1, Edition = edition, IsFoil = false, Conditions = new List<CardCondition> { new CardCondition { Condition = Condition.NM, Price = 10.0, Quantity = 5 } } },
+				new Card { Name = "Card 2", ImageURL = "card2.jpg", EditionId = 1, Edition = edition, IsFoil = false, Conditions = new List<CardCondition> { new CardCondition { Condition = Condition.NM, Price = 15.0, Quantity = 3 } } }
+			};
+
+			// Act
+			await service.UpsertCards(cards);
+
+			// Assert
+			var addedCards = await context.Cards.Include(c => c.Conditions).ToListAsync();
+			Assert.AreEqual(2, addedCards.Count);
+			Assert.IsTrue(addedCards.Contains(cards[0]));
+			Assert.IsTrue(addedCards.Contains(cards[1]));
+		}
+
+		[TestMethod()]
+		public async Task UpsertCards_UpdateCardsInDatabase()
+		{
+			// Arrange
+			var context = GetInMemoryDbContext();
+			var service = new ScrapingService(context);
+
+			var edition = new Edition { Name = "Edition 1", Code = "edition-1", Id = 1 };
+			context.Editions.Add(edition);
+			await context.SaveChangesAsync();
+
+			var cards = new List<Card>
+			{
+				new Card {
+					Name = "Card 1",
+					ImageURL = "card1.jpg",
+					EditionId = 1,
+					Edition = edition,
+					IsFoil = false,
+					Conditions = new List<CardCondition> { new CardCondition { Condition = Condition.NM, Price = 10.0, Quantity = 5 } },
+					NMPrice = 10.0
+				}
+			};
+
+			await service.UpsertCards(cards);
+
+			// Update card prices
+			cards[0].NMPrice = 9.99;
+
+			// Act
+			await service.UpsertCards(cards);
+
+			// Assert
+			var addedCards = await context.Cards.Include(c => c.Conditions).ToListAsync();
+			Assert.AreEqual(1, addedCards.Count);
+			Assert.IsTrue(addedCards.Contains(cards[0]));
+			Assert.AreEqual(9.99, addedCards[0].NMPrice);
+		}
 	}
 }

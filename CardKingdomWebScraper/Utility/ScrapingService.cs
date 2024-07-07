@@ -72,32 +72,43 @@ namespace CardKingdomWebScraper.Utility
 
         public async Task UpsertCards(List<Card> cards)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
-            try
+            if (_context.Database.ProviderName != "Microsoft.EntityFrameworkCore.InMemory")
             {
-				foreach (Card card in cards)
+				using var transaction = await _context.Database.BeginTransactionAsync();
+				try
 				{
-					var existingCard = await _context.Cards
-                        .Include(c => c.Conditions)
-                        .FirstOrDefaultAsync(c => c.Name == card.Name && c.EditionId == card.EditionId && c.IsFoil == card.IsFoil);
-
-					if (existingCard == null)
-						await _context.Cards.AddAsync(card);
-					else
-                    {
-                        existingCard.Conditions = card.Conditions;
-                        _context.Cards.Update(existingCard);
-                    }
+					await UpsertCardsInternal(cards);
+					await transaction.CommitAsync();
 				}
-
-				await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
+				catch (Exception)
+				{
+					await transaction.RollbackAsync();
+					throw;
+				}
+			} else
+			{
+				await UpsertCardsInternal(cards);
 			}
-            catch(Exception)
-            {
-                await transaction.RollbackAsync();
-                throw;
-            }
         }
+
+        private async Task UpsertCardsInternal(List<Card> cards)
+        {
+			foreach (Card card in cards)
+			{
+				var existingCard = await _context.Cards
+					.Include(c => c.Conditions)
+					.FirstOrDefaultAsync(c => c.Name == card.Name && c.EditionId == card.EditionId && c.IsFoil == card.IsFoil);
+
+				if (existingCard == null)
+					await _context.Cards.AddAsync(card);
+				else
+				{
+					existingCard.Conditions = card.Conditions;
+					_context.Cards.Update(existingCard);
+				}
+			}
+
+			await _context.SaveChangesAsync();
+		}
     }
 }
