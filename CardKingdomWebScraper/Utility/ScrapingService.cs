@@ -14,14 +14,14 @@ namespace CardKingdomWebScraper.Utility
 
         public async Task<List<Edition>> ScrapeEditionNames()
         {
-            List<Edition> editions = await Scraper.ScrapeEditionNames();
+            List<Edition> editions = await Scraper.GetEditionNames();
             await AddEditions(editions);
             return editions;
         }
 
         public async Task ScrapeEditionCards(Edition edition)
         {
-			List<Card> scrapedCards = await Scraper.ScrapeCardsFromEdition(edition);
+			List<Card> scrapedCards = await Scraper.GetCardsFromEdition(edition);
             await UpsertCards(scrapedCards);
         }
 

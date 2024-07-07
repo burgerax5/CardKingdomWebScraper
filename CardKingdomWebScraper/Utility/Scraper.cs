@@ -11,7 +11,7 @@ namespace CardKingdomWebScraper.Utility
 {
 	public class Scraper
 	{
-		public static async Task<List<Edition>> ScrapeEditionNames()
+		public static async Task<List<Edition>> GetEditionNames()
 		{
 			string url = "https://www.cardkingdom.com/catalog/magic_the_gathering/by_az";
 
@@ -20,6 +20,12 @@ namespace CardKingdomWebScraper.Utility
 			var htmlDocument = new HtmlDocument();
 			htmlDocument.LoadHtml(html);
 
+			var editions = ScrapeEditionNames(htmlDocument);
+			return editions;
+		}
+
+		public static List<Edition> ScrapeEditionNames(HtmlDocument htmlDocument)
+		{
 			List<Edition> editions = new List<Edition>();
 
 			HtmlNode editionContainer = htmlDocument.DocumentNode.SelectSingleNode("//div[@class='row anchorList']");
@@ -46,7 +52,7 @@ namespace CardKingdomWebScraper.Utility
 			return editions;
 		}
 
-		public static async Task<List<Card>> ScrapeCardsFromEdition(Edition edition)
+		public static async Task<List<Card>> GetCardsFromEdition(Edition edition)
 		{
 			string url = "https://www.cardkingdom.com/mtg/" + edition.Code;
 			var httpClientHandler = new HttpClientHandler { CookieContainer = new CookieContainer() };
@@ -117,25 +123,25 @@ namespace CardKingdomWebScraper.Utility
 			return cards;
 		}
 
-		private static string ScrapeCardName(HtmlNode card)
+		public static string ScrapeCardName(HtmlNode card)
 		{
 			HtmlNode cardNameElement = card.SelectSingleNode(".//span[@class='productDetailTitle']");
 			return WebUtility.HtmlDecode(cardNameElement.InnerText);
 		}
 
-		private static string ScrapeCardImageURL(HtmlNode card)
+		public static string ScrapeCardImageURL(HtmlNode card)
 		{
 			HtmlNode cardImage = card.SelectSingleNode(".//mtg-card-image");
 			return "www.cardkingdom.com" + cardImage.GetAttributeValue("src", "");
 		}
 
-		private static bool ScrapeIsFoil(HtmlNode card)
+		public static bool ScrapeIsFoil(HtmlNode card)
 		{
 			HtmlNode foilElement = card.SelectSingleNode(".//div[@class='foil']");
 			return foilElement != null;
 		}
 
-		private static (double NMPrice, List<CardCondition>) ScrapeCardConditions(HtmlNode card)
+		public static (double NMPrice, List<CardCondition>) ScrapeCardConditions(HtmlNode card)
 		{
 			List<CardCondition> cardConditions = new List<CardCondition>();
 
@@ -149,7 +155,7 @@ namespace CardKingdomWebScraper.Utility
 			return (cardConditions[0].Price, cardConditions);
 		}
 
-		private static CardCondition ScrapeCardConditionDetails(HtmlNode cardFormInput)
+		public static CardCondition ScrapeCardConditionDetails(HtmlNode cardFormInput)
 		{
 			string cardConditionName = cardFormInput.SelectSingleNode("./input[@name='style[0]']").GetAttributeValue("value", "");
 			Enum.TryParse(cardConditionName, out Condition condition);
@@ -171,7 +177,7 @@ namespace CardKingdomWebScraper.Utility
 			return cardCondition;
 		}
 
-		private static Rarity ScrapeCardRarity(HtmlNode card)
+		public static Rarity ScrapeCardRarity(HtmlNode card)
 		{
 			HtmlNode productDetailSet = card.SelectSingleNode(".//div[@class='productDetailSet']");
 			var editionNameAndRarity = productDetailSet.SelectSingleNode("a").InnerText;

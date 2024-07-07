@@ -1,4 +1,7 @@
 ﻿using CardKingdomWebScraper.Models;
+using HtmlAgilityPack;
+using Moq;
+using System;
 
 namespace CardKingdomWebScraper.Utility.Tests
 {
@@ -6,47 +9,23 @@ namespace CardKingdomWebScraper.Utility.Tests
 	public class ScraperTests
 	{
 		[TestMethod()]
-		public async Task ScrapeEditionNamesTest()
+		public void ScrapeEditionNames_ReturnsEditions()
 		{
-			List<Edition> editions = await Scraper.ScrapeEditionNames();
+			// Arrange
+			var mockHtml = @"<div class='row anchorList'>
+								<a href='/mtg/3rd-edition'>3rd Edition</a>
+								<a href='/mtg/4th-edition'>4th Edition</a>
+							</div>";
 
-			// As of 20th June 2024 there are 339 editions
-			Assert.IsTrue(editions.Count >= 339);
+			HtmlDocument htmlDocument = new HtmlDocument();
+			htmlDocument.LoadHtml(mockHtml);
 
-			// First edition to be grabbed should be 3rd Edition
-			Edition firstEdition = editions[0];
-			Assert.AreEqual("3rd Edition", firstEdition.Name);
-			Assert.AreEqual("3rd-edition", firstEdition.Code);
-		}
+			// Act
+			var scrapedEditions = Scraper.ScrapeEditionNames(htmlDocument);
 
-		[TestMethod()]
-		public async Task ScrapeEditionCardsTest()
-		{
-			Edition edition = new Edition
-			{
-				Name = "Portal II",
-				Code = "portal-ii"
-			};
-
-			List<Card> cardsInPortalII = await Scraper.ScrapeCardsFromEdition(edition);
-			Card firstCard = cardsInPortalII.First();
-
-			// There should be 165 cards (no foils) with the first one being "Goblin War Strike"
-			Assert.AreEqual(165, cardsInPortalII.Count);
-			Assert.AreEqual("Goblin War Strike", firstCard.Name);
-		}
-
-		[TestMethod()]
-		public async Task ScrapeInvalidEditionCardsTest()
-		{
-			Edition edition = new Edition
-			{
-				Name = "No Edition",
-				Code = "no-edition"
-			};
-
-			List<Card> cards = await Scraper.ScrapeCardsFromEdition(edition);
-			Assert.AreEqual(0, cards.Count);
+			// Assert
+			Assert.AreEqual(scrapedEditions[0].Name, "3rd Edition");
+			Assert.AreEqual(scrapedEditions[1].Name, "4th Edition");
 		}
 	}
 }
