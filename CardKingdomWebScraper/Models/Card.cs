@@ -20,7 +20,7 @@ namespace CardKingdomWebScraper.Models
 		public required string Name { get; set; }
 		public required string ImageURL { get; set; }
 		public int EditionId { get; set; }
-		public required Edition Edition { get; set; }
+		public Edition? Edition { get; set; }
 		public Rarity Rarity { get; set; }
 		public List<CardCondition> Conditions { get; set; } = new List<CardCondition>();
 		public bool IsFoil { get; set; }
