@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "CardKingdomWebScraper": {
+      "commandName": "Project"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
+    }
+  }
+}

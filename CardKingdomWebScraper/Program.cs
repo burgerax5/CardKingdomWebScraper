@@ -3,15 +3,21 @@ using Microsoft.Extensions.DependencyInjection;
 using CardKingdomWebScraper.Utility;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
+using DotNetEnv;
 
 public class WebScraper
 {
 
 	public static async Task Main()
 	{
+		Env.Load();
+
+		var connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING");
+
 		var serviceProvider = new ServiceCollection()
-			.AddDbContext<DataContext>(options => 
-				options.UseSqlServer("Data Source=DESKTOP-FQB978B\\SQLEXPRESS;Initial Catalog=mtg;Integrated Security=True;Connect Timeout=30;Encrypt=True;Trust Server Certificate=True;Application Intent=ReadWrite;Multi Subnet Failover=False"))
+			.AddDbContext<DataContext>(options =>
+				options.UseSqlServer(connectionString))
 			.AddLogging(configure => configure.AddConsole())
 			.AddTransient<ScrapingService>()
 			.BuildServiceProvider();

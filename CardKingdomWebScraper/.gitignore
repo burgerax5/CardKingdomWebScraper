@@ -1,1 +1,3 @@
 ﻿Migrations/
+.env
+Dockerfile
