@@ -26,7 +26,7 @@ namespace CardKingdomWebScraper.Utility
         public async Task ScrapeEditionCards(Edition edition)
         {
 			List<Card> scrapedCards = await Scraper.GetCardsFromEdition(edition);
-            await UpsertCards(scrapedCards);
+            await UpsertCards(scrapedCards, edition.Id);
         }
 
         public async Task ScrapeAllCards()
@@ -75,14 +75,14 @@ namespace CardKingdomWebScraper.Utility
 			await _context.SaveChangesAsync();
 		}
 
-        public async Task UpsertCards(List<Card> cards)
+        public async Task UpsertCards(List<Card> cards, int editionId)
         {
             if (_context.Database.ProviderName != "Microsoft.EntityFrameworkCore.InMemory")
             {
 				await using var transaction = await _context.Database.BeginTransactionAsync();
 				try
 				{
-					await UpsertCardsInternal(cards);
+					await UpsertCardsInternal(cards, editionId);
 					await transaction.CommitAsync();
 				}
 				catch (Exception ex)
@@ -93,40 +93,66 @@ namespace CardKingdomWebScraper.Utility
 				}
 			} else
 			{
-				await UpsertCardsInternal(cards);
+				await UpsertCardsInternal(cards, editionId);
 			}
         }
 
-        private async Task UpsertCardsInternal(List<Card> cards)
-        {
-            try
-            {
-				foreach (Card card in cards)
+		private async Task UpsertCardsInternal(List<Card> cards, int editionId)
+		{
+			try
+			{
+				var batchSize = 100;
+				for (int i = 0; i < cards.Count; i += batchSize)
 				{
-					var existingCard = await _context.Cards
-						.Include(c => c.Conditions)
-						.AsNoTracking()
-						.FirstOrDefaultAsync(c => c.Name == card.Name && c.EditionId == card.EditionId && c.IsFoil == card.IsFoil);
-
-					if (existingCard == null)
-						await _context.Cards.AddAsync(card);
-					else
-					{
-						_context.ChangeTracker.Clear();
-
-						existingCard.NMPrice = card.NMPrice;
-						existingCard.Conditions = card.Conditions;
-
-						_context.Cards.Update(existingCard);
-					}
+					var batch = cards.Skip(i).Take(batchSize).ToList();
+					await ProcessBatch(batch, editionId);
 				}
-
-				await _context.SaveChangesAsync();
-			} catch (Exception ex)
+			}
+			catch (Exception ex)
 			{
 				_logger.LogError(ex, $"Error while upserting cards for edition: {cards[0]?.Edition?.Name}");
 				throw;
 			}
 		}
-    }
+
+
+		private async Task ProcessBatch(List<Card> cards, int editionId)
+		{
+			var existingCards = await _context.Cards
+								.Include(c => c.Conditions)
+								.Where(c => c.EditionId == editionId)
+								.ToListAsync();
+
+			var cardsToAdd = new List<Card>();
+			var cardsToUpdate = new List<Card>();
+
+			foreach (Card card in cards)
+			{
+				// Ensure the Edition entity is tracked by the context
+				var existingEdition = await _context.Editions.FindAsync(card.EditionId);
+				if (existingEdition != null)
+				{
+					card.Edition = existingEdition;
+				}
+
+				var existingCard = existingCards.Find(c => c.Name == card.Name && c.EditionId == card.EditionId && c.IsFoil == card.IsFoil);
+
+				if (existingCard == null)
+				{
+					cardsToAdd.Add(card);
+				}
+				else
+				{
+					existingCard.NMPrice = card.NMPrice;
+					existingCard.Conditions = card.Conditions;
+					cardsToUpdate.Add(existingCard);
+				}
+			}
+
+			if (cardsToAdd.Any()) await _context.Cards.AddRangeAsync(cardsToAdd);
+			if (cardsToUpdate.Any()) _context.Cards.UpdateRange(cardsToUpdate);
+
+			await _context.SaveChangesAsync();
+		}
+	}
 }

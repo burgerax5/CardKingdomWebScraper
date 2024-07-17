@@ -319,7 +319,7 @@ namespace CardKingdomWebScraper.Utility.Tests
 			};
 
 			// Act
-			await service.UpsertCards(cards);
+			await service.UpsertCards(cards, 1);
 
 			// Assert
 			var addedCards = await context.Cards.Include(c => c.Conditions).ToListAsync();
@@ -353,13 +353,13 @@ namespace CardKingdomWebScraper.Utility.Tests
 				}
 			};
 
-			await service.UpsertCards(cards);
+			await service.UpsertCards(cards, 1);
 
 			// Update card prices
 			cards[0].NMPrice = 9.99;
 
 			// Act
-			await service.UpsertCards(cards);
+			await service.UpsertCards(cards, 1);
 
 			// Assert
 			var addedCards = await context.Cards.Include(c => c.Conditions).ToListAsync();
