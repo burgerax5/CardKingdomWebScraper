@@ -2,6 +2,7 @@
 using CardKingdomWebScraper.Models;
 using HtmlAgilityPack;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Moq;
 using System;
 
@@ -255,7 +256,8 @@ namespace CardKingdomWebScraper.Utility.Tests
 		{
 			// Arrange
 			var context = GetInMemoryDbContext();
-			var service = new ScrapingService(context);
+			var mockLogger = new Mock<ILogger<ScrapingService>>();
+			var service = new ScrapingService(context, mockLogger.Object);
 
 			var editions = new List<Edition>
 			{
@@ -278,7 +280,8 @@ namespace CardKingdomWebScraper.Utility.Tests
 		{
 			// Arrange
 			var context = GetInMemoryDbContext();
-			var service = new ScrapingService(context);
+			var mockLogger = new Mock<ILogger<ScrapingService>>();
+			var service = new ScrapingService(context, mockLogger.Object);
 
 			var editions = new List<Edition>
 			{
@@ -302,7 +305,8 @@ namespace CardKingdomWebScraper.Utility.Tests
 		{
 			// Arrange
 			var context = GetInMemoryDbContext();
-			var service = new ScrapingService(context);
+			var mockLogger = new Mock<ILogger<ScrapingService>>();
+			var service = new ScrapingService(context, mockLogger.Object);
 
 			var edition = new Edition { Name = "Edition 1", Code = "edition-1", Id = 1 };
 			context.Editions.Add(edition);
@@ -329,7 +333,8 @@ namespace CardKingdomWebScraper.Utility.Tests
 		{
 			// Arrange
 			var context = GetInMemoryDbContext();
-			var service = new ScrapingService(context);
+			var mockLogger = new Mock<ILogger<ScrapingService>>();
+			var service = new ScrapingService(context, mockLogger.Object);
 
 			var edition = new Edition { Name = "Edition 1", Code = "edition-1", Id = 1 };
 			context.Editions.Add(edition);
@@ -359,7 +364,7 @@ namespace CardKingdomWebScraper.Utility.Tests
 			// Assert
 			var addedCards = await context.Cards.Include(c => c.Conditions).ToListAsync();
 			Assert.AreEqual(1, addedCards.Count);
-			Assert.IsTrue(addedCards.Contains(cards[0]));
+			Assert.IsTrue(addedCards[0].Id == cards[0].Id);
 			Assert.AreEqual(9.99, addedCards[0].NMPrice);
 		}
 	}

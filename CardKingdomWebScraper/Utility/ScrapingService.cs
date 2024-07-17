@@ -1,5 +1,6 @@
 ﻿using CardKingdomWebScraper.Data;
 using CardKingdomWebScraper.Models;
+using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
 
 namespace CardKingdomWebScraper.Utility
@@ -7,9 +8,12 @@ namespace CardKingdomWebScraper.Utility
 	public class ScrapingService
 	{
         private readonly DataContext _context;
-        public ScrapingService(DataContext context)
+		private readonly ILogger<ScrapingService> _logger;
+
+        public ScrapingService(DataContext context, ILogger<ScrapingService> logger)
         {
             _context = context;
+			_logger = logger;
         }
 
         public async Task<List<Edition>> ScrapeEditionNames()
@@ -29,10 +33,10 @@ namespace CardKingdomWebScraper.Utility
         {
             await ScrapeEditionNames();
             List<Edition> editions = await _context.Editions.ToListAsync();
-            Console.WriteLine($"Editions: {editions.Count}");
+			_logger.LogInformation($"Editions: {editions.Count}");
             foreach (Edition edition in editions)
             {
-                Console.WriteLine($"Scraping: {edition.Name}");
+				_logger.LogInformation($"Scraping: {edition.Name}");
 				await ScrapeEditionCards(edition);
 			}
 		}
@@ -47,9 +51,10 @@ namespace CardKingdomWebScraper.Utility
                     await AddEditionsInternal(editions);
 					await transaction.CommitAsync();
 				}
-				catch (Exception)
+				catch (Exception ex)
 				{
 					await transaction.RollbackAsync();
+					_logger.LogError(ex, "Error while adding editions.");
 					throw;
 				}
 			} else
@@ -74,15 +79,16 @@ namespace CardKingdomWebScraper.Utility
         {
             if (_context.Database.ProviderName != "Microsoft.EntityFrameworkCore.InMemory")
             {
-				using var transaction = await _context.Database.BeginTransactionAsync();
+				await using var transaction = await _context.Database.BeginTransactionAsync();
 				try
 				{
 					await UpsertCardsInternal(cards);
 					await transaction.CommitAsync();
 				}
-				catch (Exception)
+				catch (Exception ex)
 				{
 					await transaction.RollbackAsync();
+					_logger.LogError(ex, "Error while upserting cards.");
 					throw;
 				}
 			} else
@@ -93,22 +99,34 @@ namespace CardKingdomWebScraper.Utility
 
         private async Task UpsertCardsInternal(List<Card> cards)
         {
-			foreach (Card card in cards)
-			{
-				var existingCard = await _context.Cards
-					.Include(c => c.Conditions)
-					.FirstOrDefaultAsync(c => c.Name == card.Name && c.EditionId == card.EditionId && c.IsFoil == card.IsFoil);
-
-				if (existingCard == null)
-					await _context.Cards.AddAsync(card);
-				else
+            try
+            {
+				foreach (Card card in cards)
 				{
-					existingCard.Conditions = card.Conditions;
-					_context.Cards.Update(existingCard);
-				}
-			}
+					var existingCard = await _context.Cards
+						.Include(c => c.Conditions)
+						.AsNoTracking()
+						.FirstOrDefaultAsync(c => c.Name == card.Name && c.EditionId == card.EditionId && c.IsFoil == card.IsFoil);
 
-			await _context.SaveChangesAsync();
+					if (existingCard == null)
+						await _context.Cards.AddAsync(card);
+					else
+					{
+						_context.ChangeTracker.Clear();
+
+						existingCard.NMPrice = card.NMPrice;
+						existingCard.Conditions = card.Conditions;
+
+						_context.Cards.Update(existingCard);
+					}
+				}
+
+				await _context.SaveChangesAsync();
+			} catch (Exception ex)
+			{
+				_logger.LogError(ex, $"Error while upserting cards for edition: {cards[0]?.Edition?.Name}");
+				throw;
+			}
 		}
     }
 }
