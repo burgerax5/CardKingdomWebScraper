@@ -3,7 +3,7 @@ The data scraped from CardKingdom is used to populate the database used by my we
 
 ## Other Repositories:
 - Web API: https://github.com/burgerax5/MagicGatherer_API
-- Frontend: https://github.com/burgerax5/CardKingdomWebScraper
+- Frontend: [https://github.com/burgerax5/CardKingdomWebScraper](https://github.com/burgerax5/MagicCollector_Frontend)
 
 ## Setup
 To get the app up and running, you will need to change the connection string and connect to a database:
